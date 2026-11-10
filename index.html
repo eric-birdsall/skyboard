@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Skyboard</title>
+  <meta name="description" content="A customizable weather dashboard — drag, resize and remove tiles. Hourly and 10‑day forecasts, air quality, UV, wind and more.">
+  <meta name="theme-color" content="#eef2f8">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Apply saved theme before first paint to avoid a flash.
+    try { var s = JSON.parse(localStorage.getItem('skyboard:state') || '{}'); if (s.theme === 'light' || s.theme === 'dark') document.documentElement.dataset.theme = s.theme; } catch (e) {}
+  </script>
+</head>
+<body>
+  <div class="sky" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#lg)"/><circle cx="25" cy="25" r="9" fill="#fde047"/><path d="M22 47a8 8 0 0 1 0-16a11 11 0 0 1 21-2.5a9 9 0 1 1-.4 18.5z" fill="#fff"/></svg>
+      <span>Skyboard</span>
+    </div>
+
+    <button class="loc-btn" id="locBtn" aria-haspopup="dialog" title="Change location">
+      <span class="loc-name"><span id="locName">Loading…</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </span>
+      <span class="loc-sub" id="locSub"></span>
+    </button>
+
+    <div class="actions">
+      <button class="icon-btn" id="refreshBtn" title="Refresh" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg>
+      </button>
+      <button class="icon-btn unit-btn" id="unitBtn" title="Switch units" aria-label="Switch units">°F</button>
+      <button class="icon-btn" id="themeBtn" title="Theme" aria-label="Theme"></button>
+      <button class="icon-btn" id="customizeBtn" title="Customize tiles" aria-label="Customize tiles">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><path d="M17.5 14v7M14 17.5h7"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="chips" id="chips" aria-label="Saved locations"></nav>
+
+  <main class="grid" id="grid" aria-live="polite"></main>
+
+  <footer class="foot">
+    <span id="updated"></span>
+    <span>Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open‑Meteo.com</a> (CC BY 4.0)</span>
+  </footer>
+
+  <!-- Locations sheet -->
+  <dialog id="locDialog" class="sheet" aria-labelledby="locTitle">
+    <div class="sheet-head">
+      <h2 id="locTitle">Locations</h2>
+      <button class="icon-btn ghost" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <label class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="searchInput" type="search" placeholder="Search a city or place" autocomplete="off" spellcheck="false" aria-label="Search locations">
+    </label>
+    <ul class="results" id="results"></ul>
+    <button class="geo-btn" id="geoBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 21 3l-8 18-2-8-8-2z"/></svg>
+      <span>Use my current location</span>
+    </button>
+    <h3 class="sheet-sub">Saved</h3>
+    <ul class="saved" id="savedList"></ul>
+  </dialog>
+
+  <!-- Customize sheet -->
+  <dialog id="tileDialog" class="sheet" aria-labelledby="tileTitle">
+    <div class="sheet-head">
+      <h2 id="tileTitle">Customize tiles</h2>
+      <button class="icon-btn ghost" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <p class="hint">Drag a tile by its header to move it (long‑press on touch screens). Hover a tile — or tap <b>Edit layout</b> — to resize <b>⤢</b> or remove <b>×</b> tiles. Your layout is saved automatically.</p>
+    <ul class="toggles" id="tileToggles"></ul>
+    <div class="sheet-foot">
+      <button class="btn" id="resetLayout">Reset layout</button>
+      <button class="btn primary" id="editLayout">Edit layout</button>
+    </div>
+  </dialog>
+
+  <div class="editbar" id="editbar" role="region" aria-label="Layout editing">
+    <span>Drag tiles to move · ⤢ resize · × remove</span>
+    <button class="btn primary" id="doneEditing">Done</button>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

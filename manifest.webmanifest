@@ -1,0 +1,11 @@
+{
+  "name": "Skyboard",
+  "short_name": "Skyboard",
+  "description": "A customizable weather dashboard with draggable tiles.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080c17",
+  "theme_color": "#2563eb",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
