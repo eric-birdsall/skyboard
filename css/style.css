@@ -118,7 +118,7 @@ svg { display: block; }
   background: color-mix(in srgb, var(--bg) 55%, transparent);
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; letter-spacing: -.02em; }
-.brand svg { width: 32px; height: 32px; border-radius: 9px; box-shadow: 0 4px 14px -4px rgba(79, 70, 229, .55); }
+.brand img { width: 32px; height: 32px; border-radius: 9px; box-shadow: 0 4px 14px -4px rgba(79, 70, 229, .55); }
 .loc-btn {
   justify-self: center; display: flex; flex-direction: column; align-items: center;
   background: none; border: 0; cursor: pointer; padding: 6px 14px; border-radius: 14px; min-width: 0; max-width: 100%;

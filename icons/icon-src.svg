@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="0.55" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#4f46e5"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.38" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#fef08a"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </radialGradient>
+    <linearGradient id="cloud" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbe4ff"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <!-- sun -->
+  <g transform="translate(338 168)">
+    <circle r="110" fill="#fde047" opacity=".35" filter="url(#glow)"/>
+    <g stroke="#fde047" stroke-width="22" stroke-linecap="round">
+      <line x1="0" y1="-104" x2="0" y2="-132"/><line x1="0" y1="104" x2="0" y2="132"/>
+      <line x1="-104" y1="0" x2="-132" y2="0"/><line x1="104" y1="0" x2="132" y2="0"/>
+      <line x1="73.5" y1="-73.5" x2="93.3" y2="-93.3"/><line x1="-73.5" y1="73.5" x2="-93.3" y2="93.3"/>
+      <line x1="-73.5" y1="-73.5" x2="-93.3" y2="-93.3"/><line x1="73.5" y1="73.5" x2="93.3" y2="93.3"/>
+    </g>
+    <circle r="78" fill="url(#sun)"/>
+  </g>
+  <!-- cloud -->
+  <path fill="#1e1b4b" opacity=".16" transform="translate(14 126) scale(6.4)"
+        d="M20 46a10 10 0 0 1 0-20a14 14 0 0 1 26.5-3a11.5 11.5 0 1 1-.5 23z"/>
+  <path fill="url(#cloud)" transform="translate(14 112) scale(6.4)"
+        d="M20 46a10 10 0 0 1 0-20a14 14 0 0 1 26.5-3a11.5 11.5 0 1 1-.5 23z"/>
+  <!-- rain -->
+  <g stroke="#bae6fd" stroke-width="22" stroke-linecap="round">
+    <line x1="176" y1="436" x2="162" y2="470"/>
+    <line x1="256" y1="436" x2="242" y2="470"/>
+    <line x1="336" y1="436" x2="322" y2="470"/>
+  </g>
+</svg>
