@@ -92,7 +92,7 @@ function loadState() {
     v: 1,
     locations: [DEFAULT_LOCATION],
     activeId: DEFAULT_LOCATION.id,
-    units: /^en-(us|lr|mm)$/i.test(navigator.language || '') ? 'imperial' : 'metric',
+    units: 'imperial', // °F, mph, inches by default; users can switch to °C
     theme: 'auto',
     layout: DEFAULT_LAYOUT.map((t) => ({ ...t })),
   };
