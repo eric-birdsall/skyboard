@@ -5,6 +5,7 @@ const STATE_KEY = 'skyboard:state';
 const CACHE_KEY = 'skyboard:cache';
 const FRESH_MS = 10 * 60 * 1000;   // reuse cached data for 10 min
 const REFRESH_MS = 15 * 60 * 1000; // auto refresh every 15 min
+const TIMEOUT_MS = 15 * 1000;      // give up on a hung request (iOS can stall fetches after resume)
 
 const API = {
   forecast: 'https://api.open-meteo.com/v1/forecast',
@@ -73,10 +74,16 @@ const flag = (cc) => (cc && cc.length === 2 ? String.fromCodePoint(...[...cc.toU
 const subtitle = (l) => [l.admin, l.country].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(', ');
 const nowIdx = (w) => { const k = w.current.time.slice(0, 13); const i = w.hourly.time.findIndex((t) => t.startsWith(k)); return i < 0 ? 0 : i; };
 
-async function getJSON(url, opts) {
-  const r = await fetch(url, opts);
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+async function getJSON(url, opts = {}) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const r = await fetch(url, { cache: 'no-store', ...opts, signal: ctrl.signal });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /* ───────────────────────── State ───────────────────────── */
@@ -86,6 +93,8 @@ let D = null;            // { loc, w, aq } for the active location
 let places = {};         // id → { temp, code, isDay, hi, lo, offset }
 let lastUpdated = 0;
 let loadToken = 0;
+let loadingSince = 0;    // start time of the in-flight network load, 0 when idle
+let lastFailed = false;
 
 function loadState() {
   const def = {
@@ -161,20 +170,24 @@ async function load(force = false) {
   if (D && !force && Date.now() - lastUpdated < FRESH_MS) { loadPlaces(); return; }
 
   document.body.classList.add('busy');
+  loadingSince = Date.now();
   try {
     const [w, aq] = await Promise.all([getJSON(forecastURL(loc)), getJSON(airURL(loc)).catch(() => null)]);
     if (token !== loadToken) return;
     D = { loc, w, aq };
     lastUpdated = Date.now();
+    lastFailed = false;
     writeCache(loc.id, { t: lastUpdated, units: state.units, w, aq });
     renderAll();
   } catch (e) {
     if (token === loadToken) {
+      lastFailed = true;
+      renderUpdated();
       toast(navigator.onLine === false ? 'You appear to be offline.' : 'Couldn’t load the forecast. Try again shortly.');
       if (!D) renderAll();
     }
   } finally {
-    if (token === loadToken) document.body.classList.remove('busy');
+    if (token === loadToken) { document.body.classList.remove('busy'); loadingSince = 0; }
   }
   loadPlaces();
 }
@@ -566,7 +579,11 @@ function renderUpdated() {
   const el = $('#updated');
   if (!lastUpdated) { el.textContent = ''; return; }
   const m = Math.round((Date.now() - lastUpdated) / 60000);
-  el.textContent = `Updated ${m < 1 ? 'just now' : m === 1 ? '1 minute ago' : m < 60 ? `${m} minutes ago` : `${Math.round(m / 60)}h ago`}`;
+  const h = Math.round(m / 60), d = Math.round(m / 1440);
+  const ago = m < 1 ? 'just now' : m === 1 ? '1 minute ago' : m < 60 ? `${m} minutes ago` : h < 48 ? `${h}h ago` : `${d} days ago`;
+  const stale = Date.now() - lastUpdated > REFRESH_MS;
+  el.textContent = `Updated ${ago}${stale ? (lastFailed ? ' · couldn’t refresh — tap to retry' : ' · tap to refresh') : ''}`;
+  el.classList.toggle('stale', stale);
 }
 
 function renderAll() {
@@ -830,15 +847,24 @@ function toast(msg, action) {
   toastTimer = setTimeout(() => t.classList.remove('show'), action ? 6000 : 3000);
 }
 
-/* Refresh cadence */
+/* Refresh cadence.
+   Home-screen web apps on iOS are frozen in the background rather than reloaded, and don't
+   reliably fire visibilitychange on resume, so check staleness on every wake-up signal we get. */
+function refreshIfStale(maxAge = FRESH_MS) {
+  if (document.visibilityState !== 'visible') return;
+  if (loadingSince && Date.now() - loadingSince < TIMEOUT_MS + 5000) return; // a load is already running
+  if (Date.now() - lastUpdated > maxAge) load(true);
+}
 setInterval(() => {
   renderUpdated();
   if (D?.w) renderHeader();
-  if (document.visibilityState === 'visible' && Date.now() - lastUpdated > REFRESH_MS) load(true);
+  refreshIfStale(REFRESH_MS);
 }, 60 * 1000);
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && lastUpdated && Date.now() - lastUpdated > FRESH_MS) load(true);
-});
+document.addEventListener('visibilitychange', () => refreshIfStale());
+addEventListener('pageshow', (e) => { if (e.persisted) refreshIfStale(); });
+addEventListener('focus', () => refreshIfStale());
+addEventListener('online', () => refreshIfStale(0));
+$('#updated').addEventListener('click', () => { if ($('#updated').classList.contains('stale')) load(true); });
 
 /* ───────────────────────── Boot ───────────────────────── */
 applyTheme();
